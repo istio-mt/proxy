@@ -191,7 +191,7 @@ const std::vector<MetricFactory>& PluginRootContext::defaultMetrics() {
                     static_cast<uint32_t>(Protocol::HTTP) |
                         static_cast<uint32_t>(Protocol::GRPC),
                     count_standard_labels, /* recurrent */ false},
-      MetricFactory{"request_duration_milliseconds", MetricType::Histogram,
+      MetricFactory{"request_duration_milliseconds_sum", MetricType::Counter,
                     [](::Wasm::Common::RequestInfo& request_info) -> uint64_t {
                       return request_info.duration /* in nanoseconds */ /
                              1000000;
@@ -199,14 +199,14 @@ const std::vector<MetricFactory>& PluginRootContext::defaultMetrics() {
                     static_cast<uint32_t>(Protocol::HTTP) |
                         static_cast<uint32_t>(Protocol::GRPC),
                     count_standard_labels, /* recurrent */ false},
-      MetricFactory{"request_bytes", MetricType::Histogram,
+      MetricFactory{"request_bytes", MetricType::Counter,
                     [](::Wasm::Common::RequestInfo& request_info) -> uint64_t {
                       return request_info.request_size;
                     },
                     static_cast<uint32_t>(Protocol::HTTP) |
                         static_cast<uint32_t>(Protocol::GRPC),
                     count_standard_labels, /* recurrent */ false},
-      MetricFactory{"response_bytes", MetricType::Histogram,
+      MetricFactory{"response_bytes", MetricType::Counter,
                     [](::Wasm::Common::RequestInfo& request_info) -> uint64_t {
                       return request_info.response_size;
                     },
