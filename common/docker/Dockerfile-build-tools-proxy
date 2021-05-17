@@ -1,0 +1,11 @@
+ARG BUILD_TAG=release-1.9-2021-04-20T05-19-44
+
+FROM gcr.io/istio-testing/build-tools-proxy:$BUILD_TAG
+
+RUN wget https://obs-community.obs.cn-north-1.myhuaweicloud.com/obsutil/current/obsutil_linux_amd64.tar.gz -O obsutil_linux_amd64.tar.gz \
+    && tar -zvxf obsutil_linux_amd64.tar.gz \
+    && rm -rf obsutil_linux_amd64.tar.gz \
+    && chmod 755 obsutil_linux_amd64_5.2.12/obsutil \
+    && mv obsutil_linux_amd64_5.2.12/obsutil /usr/bin \
+    && rm -rf obsutil_linux_amd64_5.2.12
+
