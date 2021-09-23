@@ -74,6 +74,8 @@ while getopts d:ipc arg ; do
   esac
 done
 
+obsutil config -i=${OBS_AK} -k=${OBS_SK} -e=${OBS_ENDPOINT}
+
 echo "Destination bucket: $DST"
 
 if [ "${DST}" == "none" ]; then
@@ -101,8 +103,8 @@ SHA="$(git rev-parse --verify HEAD)"
 if [ -n "${DST}" ]; then
   # If binary already exists skip.
   # Use the name of the last artifact to make sure that everything was uploaded.
-  BINARY_NAME="${HOME}/istio-proxy-debug-${SHA}.deb"
-  gsutil stat "${DST}/${BINARY_NAME}" \
+  BINARY_NAME="istio-proxy-debug-${SHA}.deb"
+  obsutil stat "${DST}/${BINARY_NAME}" \
     && { echo 'Binary already exists'; exit 0; } \
     || echo 'Building a new binary.'
 fi
@@ -164,7 +166,7 @@ do
   if [ -n "${DST}" ]; then
     # Copy it to the bucket.
     echo "Copying ${BINARY_NAME} ${SHA256_NAME} to ${DST}/"
-    gsutil cp "${BINARY_NAME}" "${SHA256_NAME}" "${DST}/"
+    obsutil cp -msm=1 "${BINARY_NAME}","${SHA256_NAME}" "${DST}/"
   fi
 
   if [ "${BUILD_ENVOY_BINARY_ONLY}" -eq 1 ]; then
@@ -198,7 +200,7 @@ do
     if [ -n "${DST}" ]; then
       # Copy it to the bucket.
       echo "Copying ${BINARY_NAME} ${SHA256_NAME} to ${DST}/"
-      gsutil cp "${BINARY_NAME}" "${SHA256_NAME}" "${DST}/"
+      obsutil cp -msm=1 "${BINARY_NAME}","${SHA256_NAME}" "${DST}/"
     fi
   fi
 done
@@ -232,13 +234,13 @@ if [ -n "${DST}" ]; then
     sha256sum "${WASM_COMPILED_PATH}" > "${SHA256_COMPILED_PATH}"
     
     # push wasm files and sha to the given bucket
-    gsutil stat "${DST}/${WASM_NAME}" \
+    obsutil stat "${DST}/${WASM_NAME}" \
       && { echo "WASM file ${WASM_NAME} already exist"; continue; } \
       || echo "Pushing the WASM file ${WASM_NAME}"
-    gsutil stat "${DST}/${WASM_COMPILED_NAME}" \
+    obsutil stat "${DST}/${WASM_COMPILED_NAME}" \
       && { echo "WASM file ${WASM_COMPILED_NAME} already exist"; continue; } \
       || echo "Pushing the WASM file ${WASM_COMPILED_NAME}"
-    gsutil cp "${WASM_PATH}" "${SHA256_PATH}" "${DST}"
-    gsutil cp "${WASM_COMPILED_PATH}" "${SHA256_COMPILED_PATH}" "${DST}"
+    obsutil cp -msm=1 "${WASM_PATH}","${SHA256_PATH}" "${DST}"
+    obsutil cp -msm=1 "${WASM_COMPILED_PATH}","${SHA256_COMPILED_PATH}" "${DST}"
   done
 fi
