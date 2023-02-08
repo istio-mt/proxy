@@ -18,6 +18,8 @@ workspace(name = "io_istio_proxy")
 
 # http_archive is not a native function since bazel 0.19
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive", "http_file")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("//bazel:gitlab.bzl", "GITLAB_TOKEN", "GITLAB_URL", "GITLAB_PROJECT_ID")
 load(
     "//bazel:repositories.bzl",
     "docker_dependencies",
@@ -41,19 +43,16 @@ bind(
 # Commit date: 2022-06-22
 ENVOY_SHA = "52a65ab3504ae4184df5a5914eb7143d43483fc7"
 
-ENVOY_SHA256 = "40fcb6d6d81c246b110e850cf90876d9a62f5f3635f5ff7e6bdd16f02e09e9a6"
-
 ENVOY_ORG = "istio-mt"
 
 ENVOY_REPO = "envoy"
 
 # To override with local envoy, just pass `--override_repository=envoy=/PATH/TO/ENVOY` to Bazel or
 # persist the option in `user.bazelrc`.
-http_archive(
+git_repository(
     name = "envoy",
-    sha256 = ENVOY_SHA256,
-    strip_prefix = ENVOY_REPO + "-" + ENVOY_SHA,
-    url = "https://github.com/" + ENVOY_ORG + "/" + ENVOY_REPO + "/archive/" + ENVOY_SHA + ".tar.gz",
+    commit = ENVOY_SHA,
+    remote = "https://user:" + GITLAB_TOKEN + "@" + GITLAB_URL + "/" + ENVOY_ORG + "/" + ENVOY_REPO + ".git",
 )
 
 load("@envoy//bazel:api_binding.bzl", "envoy_api_binding")
