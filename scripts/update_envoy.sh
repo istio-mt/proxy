@@ -30,29 +30,32 @@ UPDATE_BRANCH=${UPDATE_BRANCH:-"main"}
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 WORKSPACE=${ROOT}/WORKSPACE
+GITLAB_BAZEL=${ROOT}/bazel/gitlab.bzl
 
-ENVOY_ORG="$(grep -Pom1 "^ENVOY_ORG = \"\K[a-zA-Z-]+" "${WORKSPACE}")"
-ENVOY_REPO="$(grep -Pom1 "^ENVOY_REPO = \"\K[a-zA-Z-]+" "${WORKSPACE}")"
+# ENVOY_ORG="$(grep -Pom1 "^ENVOY_ORG = \"\K[a-zA-Z-]+" "${WORKSPACE}")"
+# ENVOY_REPO="$(grep -Pom1 "^ENVOY_REPO = \"\K[a-zA-Z-]+" "${WORKSPACE}")"
+
+GITLAB_TOKEN=${GITLAB_TOKEN:-"your-gitlab-access-token"}
+GITLAB_URL=${GITLAB_URL:-"your-gitlab-url"}
+GITLAB_PROJECT_ID=${GITLAB_PROJECT_ID:-"your-gitlab-project-id"}
 
 # get latest commit for specified org/repo
-LATEST_SHA="$(git ls-remote https://github.com/"${ENVOY_ORG}"/"${ENVOY_REPO}" "$UPDATE_BRANCH" | awk '{ print $1}')"
-DATE=$(curl -s -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/"${ENVOY_ORG}""/""${ENVOY_REPO}"/commits/"${LATEST_SHA}" | jq '.commit.committer.date')
-DATE=$(echo "${DATE/\"/}" | cut -d'T' -f1)
+LATEST_SHA=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/projects/${GITLAB_PROJECT_ID}/repository/branches/${UPDATE_BRANCH}" | jq -r '.commit.id')
+DATE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/projects/${GITLAB_PROJECT_ID}/repository/commits/${LATEST_SHA}" | jq -r '.committed_date')
 
-# Get ENVOY_SHA256
-URL="https://github.com/${ENVOY_ORG}/${ENVOY_REPO}/archive/${LATEST_SHA}.tar.gz"
-GETSHA=$(wget "${URL}" && sha256sum "${LATEST_SHA}".tar.gz | awk '{ print $1 }')
-SHAArr=("${GETSHA}")
-SHA256=${SHAArr[0]}
-rm "${LATEST_SHA}".tar.gz
+DATE=$(echo "${DATE/\"/}" | cut -d'T' -f1)
 
 # Update ENVOY_SHA commit date
 sed -i "s/Commit date: .*/Commit date: ${DATE}/" "${WORKSPACE}"
 
 # Update the dependency in istio/proxy WORKSPACE
 sed -i 's/ENVOY_SHA = .*/ENVOY_SHA = "'"$LATEST_SHA"'"/' "${WORKSPACE}"
-sed -i 's/ENVOY_SHA256 = .*/ENVOY_SHA256 = "'"$SHA256"'"/' "${WORKSPACE}"
 
 # Update .bazelversion and envoy.bazelrc
-curl -sSL "https://raw.githubusercontent.com/${ENVOY_ORG}/${ENVOY_REPO}/${LATEST_SHA}/.bazelversion" > .bazelversion
-curl -sSL "https://raw.githubusercontent.com/${ENVOY_ORG}/${ENVOY_REPO}/${LATEST_SHA}/.bazelrc" > envoy.bazelrc
+curl -sSL --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/projects/${GITLAB_PROJECT_ID}/repository/files/.bazelversion/raw?ref=${LATEST_SHA}" > .bazelversion
+curl -sSL --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" "https://${GITLAB_URL}/api/v4/projects/${GITLAB_PROJECT_ID}/repository/files/.bazelrc/raw?ref=${LATEST_SHA}" > envoy.bazelrc
+
+# Generate gitlab bazel
+echo "GITLAB_TOKEN = \"${GITLAB_TOKEN}\"" > "${GITLAB_BAZEL}"
+echo "GITLAB_URL = \"${GITLAB_URL}\"" >> "${GITLAB_BAZEL}"
+echo "GITLAB_PROJECT_ID = \"${GITLAB_PROJECT_ID}\"" >> "${GITLAB_BAZEL}"
